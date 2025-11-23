@@ -9,7 +9,7 @@ After editing the GPON SN/Vendor ID to HWTC (Huawei), the module would briefly r
 
 # Digging deeper
 
-## The flash layout {#flash-layout}
+## The flash layout
 
 For most sticks, the general layout looks like this:
 - mtd0 -> 000000 - 03FFFF (U-Boot)
@@ -29,7 +29,7 @@ When booted from mtd5, the names are different ([source](https://hack-gpon.org/o
 - mtd4 becomes mtd5
 
 
-## Serial console access {#serial-console}
+## Serial console access
 
 By default, none of the models of this module expose a serial console.
 To make them do so, you have to set the following U-Boot variables:
@@ -48,12 +48,12 @@ Later, I've made this adapter for accessing the console more easily:
 The full boot log can be found [here](./G-010S-P%20bootlog%20normal.txt?raw=true).
 
 
-## Flashing firmware {#flashing-firmware}
+## Flashing firmware
 
-### Via mtd write {#flashing-firmware-mtd-write}
+### Via mtd write
 
 Seems like you can pretty safely flash a different firmware image with ``mtd write`` when the stick is booted, has a network link and you have root access.
-Before attempting this, I recommend [unlocking the serial console](#serial-console) to enable future debugging/recovery.
+Before attempting this, I recommend [unlocking the serial console](#serial-console-access) to enable future debugging/recovery.
 The new firmware image can be downloaded onto the stick's tmpfs using netcat.
 On the sender:
 ```
@@ -88,11 +88,11 @@ Writing from mtd2.bin to linux ...
 ```
 
 
-### Via XMODEM {#flashing-firmware-xmodem}
+### Via XMODEM
 
 I never tried! Some information can be found [here](https://github.com/tonusoo/koduinternet-cpe?tab=readme-ov-file#-small_blue_diamond-rooting-the-sfp-ont).
 
-### Via an external hardware programmer {#flashing-firmware-external-programmer}
+### Via an external hardware programmer
 
 This is the "I'm desperate, it must work" method that I used the most.
 With a cheap CH341A programmer, it's possible to read and write to the SPI flash chip after desoldering it from the module.
@@ -100,7 +100,7 @@ With a cheap CH341A programmer, it's possible to read and write to the SPI flash
 I recommend using the NeoProgrammer software with the CH341A.
 
 
-## Booting image1 (mtd5) {#booting-image1}
+## Booting image1 (mtd5)
 
 The [Hack GPON guide](https://hack-gpon.org/ont-huawei-ma5671a/#cloning-of-mtd1-image-0-into-mtd5-image-1) says that this is all you have to do:
 ```
@@ -114,7 +114,7 @@ However with my module, I also had to modify the ``bootcmd`` variable like this:
 As before it was set to ``bootcmd=run boot_image0``.
 
 
-## Modifying the contents of the SquashFS and JFFS2 images {#modifying-the-squashfs-and-jffs2}
+## Modifying the contents of the SquashFS and JFFS2 images
 
 Inside this repo, I'm including some scripts for unpacking and repacking the filesystems, which allow for offline modification of the firmware images.
 I've tested the SquashFS part and it worked fine (the module booted with the repacked fs).
@@ -122,7 +122,7 @@ The JFFS2 part should work for the most part (I compared generated JFFS2 images 
 Also, as mentioned before, the exact offsets and sizes of filesystems can differ.
 
 
-## "The Huawei fix" {#huawei-fix}
+## "The Huawei fix"
 
 To make the stick work stably with the Huawei OLT in my setup, I had to apply some modifications to the latest Chinese firmware (``基于新版固件修改版_2023.05.18/alcatel-g010sp_new_busybox-squashfs.image``).
 I pulled the Huawei OMCI deamon (``huawei_fix/omcid-huawei``) from the original-rooted Huawei MA5671A firmware found [here](https://hack-gpon.org/ont-huawei-ma5671a/#list-of-firmwares-and-files).
@@ -142,7 +142,7 @@ Through some testing, I determined that the critical OMCI MEs are:
 ```
 Only the Huawei OMCID understands those MEs.
 
-### Here is the full modification procedure: {#huawei-fix-modification-procedure}
+### Here is the full modification procedure:
 1. Use the web UI to change the OMCID log level to 4.
     This prevents a log spam in ``/tmp/log/debug``. Without it, the tmpfs gets filled quickly, and the web UI becomes inaccessible.
     The Huawei OMCID supports only 5 log levels ``0-4``.
@@ -173,7 +173,7 @@ Only the Huawei OMCID understands those MEs.
     - You can also uncomment the ME ``#347`` (IPv6 host config data).
 3. Install the Huawei OMCID.
     In this step, the Huawei OMCID gets copied to the omcid location on the stick, overwriting the default one located in SquashFS.
-    - Use the netcat transfer method from [Flashing firmware -> Via mtd write](#flashing-firmware-mtd-write) to transfer the new omcid to /tmp.
+    - Use the netcat transfer method from [Flashing firmware -> Via mtd write](#via-mtd-write) to transfer the new omcid to /tmp.
     - Replace the default omcid:
         ```
         chmod +x /tmp/omcid-huawei
@@ -184,7 +184,7 @@ Only the Huawei OMCID understands those MEs.
     Enable the following two checkboxes in the web UI: ``GPON -> 互操作兼容配置 -> 高级自定义设置 -> 禁用光纤状态检测, 禁用RX_LOS报告``.
 
 
-## 2.5Gbps/HSGMII operation {#hsgmii-operation}
+## 2.5Gbps/HSGMII operation
 
 As stated in the introduction, for 2.5Gbps operation, the MAC has to support HSGMII.
 There are quite few devices that expose this interface on an SFP.
@@ -202,7 +202,7 @@ And it's based on the [Realtek RTL8221B](https://www.realtek.com/Product/Index?i
 ![Image](./img/IMG20251119153741.jpg?raw=true)
 
 
-## Final words {#final-words}
+## Final words
 
 Happy speedtesting! :)
 ![Image](https://www.speedtest.net/result/18504053993.png)
@@ -211,7 +211,7 @@ Happy speedtesting! :)
 I've been told that the latest R23 firmware for the Huawei MA5800 series includes further vendor-lock mechanisms that probably break compatibility with this hack. Our OLT is running the R18 firmware, which works fine even for XGS-PON boards.
 
 
-## More useful links {#useful-links}
+## More useful links
 
 - https://github.com/hwti/G-010S-A
 - https://github.com/njd90/G-010S-P_Bouygues
